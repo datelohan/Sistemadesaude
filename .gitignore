@@ -16,3 +16,18 @@ build/
 
 # Logs
 *.log
+pino*.log
+
+# pnpm
+.pnpm-store/
+pnpm-lock.yaml
+
+# Prisma
+apps/backend/prisma/migrations/
+
+# Coverage
+coverage/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,260 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Auth ────────────────────────────────────────────────
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String
+  name         String
+  phone        String?
+  active       Boolean       @default(true)
+  profiles     UserProfile[]
+  refreshTokens RefreshToken[]
+  auditLogs    AuditLog[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@map("users")
+}
+
+model UserProfile {
+  id         String   @id @default(uuid())
+  userId     String
+  role       Role
+  clientId   String?
+  supplierId String?
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client     Client?  @relation(fields: [clientId], references: [id])
+  supplier   Supplier? @relation(fields: [supplierId], references: [id])
+
+  @@unique([userId, role, clientId, supplierId])
+  @@map("user_profiles")
+}
+
+enum Role {
+  ADMIN
+  CLIENT
+  SUPPLIER
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@map("refresh_tokens")
+}
+
+// ─── Cadastros Mestres ────────────────────────────────────
+
+model Client {
+  id           String        @id @default(uuid())
+  cnpj         String        @unique @db.VarChar(18)
+  name         String
+  municipality String
+  state        String        @db.Char(2)
+  zipCode      String?       @db.VarChar(9)
+  address      String?
+  active       Boolean       @default(true)
+  profiles     UserProfile[]
+  contracts    Contract[]
+  budgets      Budget[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@map("clients")
+}
+
+model Supplier {
+  id        String        @id @default(uuid())
+  cnpj      String        @unique @db.VarChar(18)
+  name      String
+  state     String        @db.Char(2)
+  zipCode   String?       @db.VarChar(9)
+  address   String?
+  active    Boolean       @default(true)
+  profiles  UserProfile[]
+  quotes    Quote[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@map("suppliers")
+}
+
+model Contract {
+  id          String             @id @default(uuid())
+  number      String             @unique
+  clientId    String
+  client      Client             @relation(fields: [clientId], references: [id])
+  startDate   DateTime           @db.Date
+  endDate     DateTime           @db.Date
+  totalValue  Decimal            @db.Decimal(15, 2)
+  status      ContractStatus     @default(ACTIVE)
+  categories  ContractCategory[]
+  budgets     Budget[]
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@map("contracts")
+}
+
+enum ContractStatus {
+  ACTIVE
+  EXPIRED
+  SUSPENDED
+}
+
+model ContractCategory {
+  id         String          @id @default(uuid())
+  contractId String
+  contract   Contract        @relation(fields: [contractId], references: [id])
+  category   ProductCategory
+  maxValue   Decimal         @db.Decimal(15, 2)
+
+  @@unique([contractId, category])
+  @@map("contract_categories")
+}
+
+enum ProductCategory {
+  MEDICATION
+  HOSPITAL_SUPPLIES
+  EQUIPMENT_MAINTENANCE
+  EQUIPMENT_RENTAL
+}
+
+model Product {
+  id          String          @id @default(uuid())
+  catmatCode  String          @unique @db.VarChar(20)
+  description String
+  unit        String          @db.VarChar(20)
+  category    ProductCategory
+  cmedPrice   Decimal?        @db.Decimal(15, 2)
+  cid10Code   String?         @db.VarChar(10)
+  active      Boolean         @default(true)
+  budgetItems BudgetItem[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@map("products")
+}
+
+// Taxa de ICMS por estado (dado público, importado via seed)
+model IcmsRate {
+  state   String  @id @db.Char(2)
+  rate    Decimal @db.Decimal(5, 4)
+
+  @@map("icms_rates")
+}
+
+// ─── Orçamento / Cotação ─────────────────────────────────
+
+model Budget {
+  id         String       @id @default(uuid())
+  number     String       @unique
+  clientId   String
+  client     Client       @relation(fields: [clientId], references: [id])
+  contractId String
+  contract   Contract     @relation(fields: [contractId], references: [id])
+  type       BudgetType
+  status     BudgetStatus @default(OPEN)
+  deadline   DateTime
+  items      BudgetItem[]
+  quotes     Quote[]
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@map("budgets")
+}
+
+enum BudgetType {
+  REGULAR
+  EMERGENCY
+  JUDICIAL
+}
+
+enum BudgetStatus {
+  OPEN
+  PENDING_APPROVAL
+  APPROVED
+  CANCELLED
+  CLOSED
+}
+
+model BudgetItem {
+  id         String      @id @default(uuid())
+  budgetId   String
+  budget     Budget      @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product     @relation(fields: [productId], references: [id])
+  quantity   Int
+  quoteItems QuoteItem[]
+
+  @@map("budget_items")
+}
+
+model Quote {
+  id         String      @id @default(uuid())
+  budgetId   String
+  budget     Budget      @relation(fields: [budgetId], references: [id])
+  supplierId String
+  supplier   Supplier    @relation(fields: [supplierId], references: [id])
+  status     QuoteStatus @default(PENDING)
+  totalValue Decimal     @db.Decimal(15, 2)
+  feeRate    Decimal     @db.Decimal(5, 4)
+  items      QuoteItem[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@unique([budgetId, supplierId])
+  @@map("quotes")
+}
+
+enum QuoteStatus {
+  PENDING
+  SUBMITTED
+  WON
+  LOST
+  CANCELLED
+}
+
+model QuoteItem {
+  id           String     @id @default(uuid())
+  quoteId      String
+  quote        Quote      @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  budgetItemId String
+  budgetItem   BudgetItem @relation(fields: [budgetItemId], references: [id])
+  unitPrice    Decimal    @db.Decimal(15, 2)
+  totalPrice   Decimal    @db.Decimal(15, 2)
+
+  @@map("quote_items")
+}
+
+// ─── Auditoria ────────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  action     String   @db.VarChar(50)
+  resource   String   @db.VarChar(50)
+  resourceId String?
+  metadata   Json?
+  ip         String?  @db.VarChar(45)
+  createdAt  DateTime @default(now())
+
+  @@index([resource, resourceId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
