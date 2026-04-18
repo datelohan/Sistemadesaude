@@ -4,7 +4,9 @@ import helmet from '@fastify/helmet'
 import rateLimit from '@fastify/rate-limit'
 import { ZodError } from 'zod'
 import { env } from './env.js'
+import { AppError } from './lib/errors.js'
 import { authRoutes } from './routes/auth.routes.js'
+import { clientRoutes } from './routes/client.routes.js'
 
 export async function buildApp() {
   const logger =
@@ -32,13 +34,15 @@ export async function buildApp() {
     timeWindow: '1 minute',
   })
 
-  // Tratamento global de erros de validação Zod
   app.setErrorHandler((error, _request, reply) => {
     if (error instanceof ZodError) {
       return reply.status(422).send({
         message: 'Dados inválidos',
         errors: error.flatten().fieldErrors,
       })
+    }
+    if (error instanceof AppError) {
+      return reply.status(error.statusCode).send({ message: error.message })
     }
     app.log.error(error)
     return reply.status(500).send({ message: 'Erro interno do servidor' })
@@ -48,6 +52,7 @@ export async function buildApp() {
   app.get('/ready', async () => ({ status: 'ok', timestamp: new Date().toISOString() }))
 
   await app.register(authRoutes)
+  await app.register(clientRoutes)
 
   return app
 }

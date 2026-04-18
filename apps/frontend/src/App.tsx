@@ -4,6 +4,8 @@ import { ProtectedRoute } from './components/ProtectedRoute.js'
 import { LoginPage } from './pages/LoginPage.js'
 import { SelectProfilePage } from './pages/SelectProfilePage.js'
 import { DashboardPage } from './pages/DashboardPage.js'
+import { ClientsPage } from './pages/clients/ClientsPage.js'
+import { ClientFormPage } from './pages/clients/ClientFormPage.js'
 
 export function App() {
   const { user, selectedProfile } = useAuth()
@@ -19,6 +21,9 @@ export function App() {
 
       <Route element={<ProtectedRoute />}>
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/clientes" element={<ClientsPage />} />
+        <Route path="/clientes/novo" element={<ClientFormPage />} />
+        <Route path="/clientes/:id/editar" element={<ClientFormPage />} />
       </Route>
 
       <Route
