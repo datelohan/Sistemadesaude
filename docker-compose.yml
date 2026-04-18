@@ -2,12 +2,13 @@ services:
   mysql:
     image: mysql:8.0
     ports:
-      - "3306:3306"
+      - "3307:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-smeds_dev}
-      MYSQL_USER: ${MYSQL_USER:-smeds}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-smeds}
+      MYSQL_ROOT_PASSWORD: ""
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      MYSQL_DATABASE: smeds_dev
+      MYSQL_USER: smeds
+      MYSQL_PASSWORD: smeds
     volumes:
       - mysql_data:/var/lib/mysql
       - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -16,43 +17,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - smeds
-
-  backend:
-    build:
-      context: ./apps/backend
-      dockerfile: Dockerfile
-      target: development
-    ports:
-      - "3000:3000"
-    env_file: .env
-    volumes:
-      - ./apps/backend:/app
-      - /app/node_modules
-    depends_on:
-      mysql:
-        condition: service_healthy
-      minio:
-        condition: service_started
-      elasticmq:
-        condition: service_started
-      mailhog:
-        condition: service_started
-    networks:
-      - smeds
-
-  frontend:
-    build:
-      context: ./apps/frontend
-      dockerfile: Dockerfile
-      target: development
-    ports:
-      - "5173:5173"
-    env_file: .env
-    volumes:
-      - ./apps/frontend:/app
-      - /app/node_modules
     networks:
       - smeds
 

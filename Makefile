@@ -1,8 +1,12 @@
-.PHONY: dev down install db-migrate db-studio test lint
+.PHONY: dev infra down install db-migrate db-seed db-studio test lint
 
-dev:
-	docker compose up -d
+# Sobe infra (MySQL, MinIO, etc.) + backend + frontend no host
+dev: infra
 	pnpm --filter backend dev & pnpm --filter frontend dev
+
+# Só infra Docker (MySQL, MinIO, ElasticMQ, MailHog, Adminer)
+infra:
+	docker compose up -d
 
 down:
 	docker compose down
@@ -13,6 +17,11 @@ install:
 db-migrate:
 	pnpm --filter backend db:migrate
 
+db-seed:
+	pnpm --filter backend db:seed
+
+db-setup: db-migrate db-seed
+
 db-studio:
 	pnpm --filter backend db:studio
 
@@ -20,4 +29,4 @@ test:
 	pnpm -r test
 
 lint:
-	pnpm -r lint
+	eslint apps packages

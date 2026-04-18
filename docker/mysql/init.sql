@@ -1,3 +1,4 @@
 CREATE DATABASE IF NOT EXISTS smeds_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+GRANT ALL PRIVILEGES ON smeds_dev.* TO 'smeds'@'%';
 GRANT ALL PRIVILEGES ON smeds_test.* TO 'smeds'@'%';
 FLUSH PRIVILEGES;

@@ -6,7 +6,7 @@ export default defineConfig({
     environment: 'node',
     env: {
       NODE_ENV: 'test',
-      DATABASE_URL: 'mysql://smeds:smeds@localhost:3306/smeds_test',
+      DATABASE_URL: 'mysql://smeds:smeds@127.0.0.1:3307/smeds_test',
       JWT_SECRET: 'test-secret-key-that-is-at-least-32-chars!!',
       JWT_ACCESS_EXPIRES_IN: '15m',
       JWT_REFRESH_EXPIRES_IN: '7d',
