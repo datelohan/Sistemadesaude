@@ -1,10 +1,8 @@
-import { afterAll, beforeAll } from 'vitest'
+import { afterAll } from 'vitest'
 import { prisma } from '../lib/prisma.js'
 
-beforeAll(async () => {
-  await prisma.$connect()
-})
-
+// Prisma conecta lazily — não forçar $connect() aqui.
+// Testes de integração com DB real ficam em *.integration.test.ts.
 afterAll(async () => {
   await prisma.$disconnect()
 })
